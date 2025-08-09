@@ -1,0 +1,14 @@
+module "remote_employees" {
+  source = "./modules/Remote-Employees"  # Adjust this path if different
+
+  project_id           = var.project_id
+  region               = var.region
+  network_name         = var.network_name
+  ncc_hub_id           = var.ncc_hub_id
+
+  foreign_router_name  = var.foreign_router_name
+  foreign_router_asn   = var.foreign_router_asn
+  shared_secret        = var.shared_secret
+  peer_gateway_id      = var.peer_gateway_id
+  peer_asn             = var.peer_asn
+}

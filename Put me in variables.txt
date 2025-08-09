@@ -1,0 +1,10 @@
+variable "project_id" {}
+variable "region" {}
+variable "network_name" {}
+variable "ncc_hub_id" {}
+
+variable "foreign_router_name" {}
+variable "foreign_router_asn" {}
+variable "shared_secret" {}
+variable "peer_gateway_id" {}
+variable "peer_asn" {}
