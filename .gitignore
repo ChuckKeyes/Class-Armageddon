@@ -1,0 +1,27 @@
+# === Terraform ===
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+terraform.tfvars
+*.tfplan
+*.log
+
+# === macOS / Windows / Linux ===
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# === Editor / IDE Files ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# === Shell History / Scripts ===
+*.sh~
