@@ -1,0 +1,17 @@
+var.foreign_bgp_asn
+var.foreign_vpc_name
+var.hq_bgp_asn
+var.hq_ha_vpn_self_link
+var.hq_peer1_ip
+var.hq_peer2_ip
+var.linknet1_cidr
+var.linknet2_cidr
+var.project_id
+var.shared_secret
+
+If your VPC doesn’t have Cloud NAT and you set vm_public_ip = false, apt-get may fail. Either enable Cloud NAT or temporarily allow public IPs.
+
+SSH via IAP: add the Compute OS Login + IAP roles to your user, then connect with
+gcloud compute ssh <vm-name> --tunnel-through-iap --zone <zone>
+
+These VMs are tiny and cheap—perfect for ping/traceroute from each region through your Cloud Router → HA VPN → NCC → HQ path.

@@ -1,0 +1,28 @@
+output "foreign_vpc_id" {
+  value = google_compute_network.foreign_vpc.id
+}
+
+output "ha_vpn_gateway" {
+  value = google_compute_ha_vpn_gateway.foreign_ha_gw.self_link
+}
+
+output "spoke_name" {
+  value = google_network_connectivity_spoke.foreign_spoke.name
+}
+
+###########################################################################
+###########             Needed  for testing         #######################
+###########################################################################
+
+output "test_vm_internal_ips" {
+  value = {
+    for k, inst in google_compute_instance.test : k => inst.network_interface[0].network_ip
+  }
+}
+
+output "test_vm_external_ips" {
+  value = {
+    for k, inst in google_compute_instance.test :
+    k => try(inst.network_interface[0].access_config[0].nat_ip, null)
+  }
+}

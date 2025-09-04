@@ -1,0 +1,100 @@
+
+# ----------------------------
+# HA VPN Gateway (us-east1)
+# ----------------------------
+resource "google_compute_ha_vpn_gateway" "foreign_ha_gw" {
+  name    = "${var.prefix}-ha-vpn"
+  region  = "us-east1"
+  network = google_compute_network.foreign_vpc.id
+}
+
+# ----------------------------
+# Tunnels (to HQ HA VPN)
+# For GCP↔GCP, use peer_gcp_gateway = <self_link of HQ HA VPN gateway>
+# ----------------------------
+resource "google_compute_vpn_tunnel" "tunnel1" {
+  name                  = "${var.prefix}-tunnel1"
+  region                = "us-east1"
+  vpn_gateway           = google_compute_ha_vpn_gateway.foreign_ha_gw.id
+  vpn_gateway_interface = 0
+  peer_gcp_gateway      = var.hq_ha_vpn_self_link
+  shared_secret         = var.shared_secret
+  ike_version           = 2
+  router                = google_compute_router.foreign_router.id
+}
+
+resource "google_compute_vpn_tunnel" "tunnel2" {
+  name                  = "${var.prefix}-tunnel2"
+  region                = "us-east1"
+  vpn_gateway           = google_compute_ha_vpn_gateway.foreign_ha_gw.id
+  vpn_gateway_interface = 1
+  peer_gcp_gateway      = var.hq_ha_vpn_self_link
+  shared_secret         = var.shared_secret
+  ike_version           = 2
+  router                = google_compute_router.foreign_router.id
+}
+
+# ----------------------------
+# Router interfaces (linknets)
+# ----------------------------
+resource "google_compute_router_interface" "if1" {
+  name       = "${var.prefix}-if1"
+  region     = "us-east1"
+  router     = google_compute_router.foreign_router.name
+  ip_range   = var.linknet1_cidr          # e.g., "169.254.11.1/30"
+  vpn_tunnel = google_compute_vpn_tunnel.tunnel1.name
+}
+
+resource "google_compute_router_interface" "if2" {
+  name       = "${var.prefix}-if2"
+  region     = "us-east1"
+  router     = google_compute_router.foreign_router.name
+  ip_range   = var.linknet2_cidr          # e.g., "169.254.12.1/30"
+  vpn_tunnel = google_compute_vpn_tunnel.tunnel2.name
+}
+
+# ----------------------------
+# BGP Peers (with HQ router)
+# ----------------------------
+resource "google_compute_router_peer" "peer1" {
+  name            = "${var.prefix}-peer1"
+  router          = google_compute_router.foreign_router.name
+  region          = "us-east1"
+  interface       = google_compute_router_interface.if1.name
+  peer_ip_address = var.hq_peer1_ip       # e.g., "169.254.11.2"
+  peer_asn        = var.hq_bgp_asn        # must differ from foreign_bgp_asn
+}
+
+resource "google_compute_router_peer" "peer2" {
+  name            = "${var.prefix}-peer2"
+  router          = google_compute_router.foreign_router.name
+  region          = "us-east1"
+  interface       = google_compute_router_interface.if2.name
+  peer_ip_address = var.hq_peer2_ip       # e.g., "169.254.12.2"
+  peer_asn        = var.hq_bgp_asn
+}
+
+# ----------------------------
+# NCC Spoke (edge) linking the two tunnels to the HQ hub
+# ----------------------------
+resource "google_network_connectivity_spoke" "foreign_spoke" {
+  provider    = google-beta
+  name        = "${var.prefix}-vpn-spoke"
+  location    = "us-east1"                          # must match HA VPN region
+  project     = var.project_id
+  hub         = var.ncc_hub_id
+  description = "Foreign VPC spoke to HQ via HA VPN"
+
+  linked_vpn_tunnels {
+    uris = [
+      google_compute_vpn_tunnel.tunnel1.id,
+      google_compute_vpn_tunnel.tunnel2.id
+    ]
+    site_to_site_data_transfer = true
+  }
+
+  depends_on = [
+    google_compute_vpn_tunnel.tunnel1,
+    google_compute_vpn_tunnel.tunnel2
+  ]
+}
